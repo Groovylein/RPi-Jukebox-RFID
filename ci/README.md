@@ -67,3 +67,22 @@ container:
 ```
 
 In that way every change to the code in the container will be available on the RPi as well as vice versa.
+
+
+### RPi-Jukebox-RFID already installed
+
+There is a new Dockerfile named `Dockerfile.buster.phoniebox_installed.amd64` where the Phoniebox is already installed.
+
+Build the container as follows (currently only ported for PC with buster):
+```
+docker build -t rpi-jukebox-rfid-buster-installed:latest -f ci/Dockerfile.buster.phoniebox_installed.amd64 .
+```
+
+Then you can run the container with the following command:
+```
+docker run -p 5001:80 --rm -ti rpi-jukebox-rfid-busteri-installed:latest /bin/bash
+```
+
+**The webserver will be attached to the port 5001**
+Access it via <localhost:5001>
+This could be useful to test the webserver.
