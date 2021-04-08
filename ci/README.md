@@ -84,5 +84,7 @@ docker run -p 5001:80 --rm -ti rpi-jukebox-rfid-busteri-installed:latest /bin/ba
 ```
 
 **The webserver will be attached to the port 5001**
-Access it via <localhost:5001>
+
+Access it via http://localhost:5001
+
 This could be useful to test the webserver.
