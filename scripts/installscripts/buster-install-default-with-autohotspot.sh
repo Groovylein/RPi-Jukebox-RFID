@@ -1185,7 +1185,10 @@ autohotspot() {
 
     # adapted from https://www.raspberryconnect.com/projects/65-raspberrypi-hotspot-accesspoints/158-raspberry-pi-auto-wifi-hotspot-switch-direct-connection
 
+    # new adaption: https://github.com/schollz/raspberry-pi-turnkey
+
     # required packages
+    sudo python3 -m pip install --upgrade --force-reinstall -q -r "${jukebox_dir}"/requirements-autohotspot.txt
     ${apt_get} install dnsmasq hostapd
     sudo systemctl unmask hostapd
     sudo systemctl disable hostapd
@@ -1204,8 +1207,8 @@ autohotspot() {
 no-resolv
 #Interface to use
 interface=wlan0
-bind-interfaces
-dhcp-range=10.0.0.50,10.0.0.150,12h
+dhcp-range=10.0.0.50,10.0.0.150,255.255.255.0,12h
+domain=wlan
 EOF'
 
     # configure hotspot
@@ -1221,21 +1224,15 @@ interface=wlan0
 driver=nl80211
 ssid=phoniebox
 hw_mode=g
-channel=8
-wmm_enabled=0
+channel=7
 macaddr_acl=0
 auth_algs=1
 ignore_broadcast_ssid=0
 wpa=2
 wpa_passphrase=PlayItLoud
 wpa_key_mgmt=WPA-PSK
-wpa_pairwise=CCMP TKIP
+wpa_pairwise=TKIP
 rsn_pairwise=CCMP
-
-#80211n - Change DE to your WiFi country code
-country_code=DE
-ieee80211n=1
-ieee80211d=1
 EOF'
 
     # configure Hotspot daemon
@@ -1270,7 +1267,7 @@ Type=oneshot
 RemainAfterExit=yes
 ExecStart=/usr/bin/autohotspot
 [Install]
-WantedBy=multi-user.target
+WantedBy=network.target
 EOF'
 
     sudo systemctl enable autohotspot.service
