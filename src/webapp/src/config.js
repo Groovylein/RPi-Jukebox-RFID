@@ -17,7 +17,7 @@ const SUBSCRIPTIONS = [
   'volume.level',
 ];
 
-const DEFAULT_AUDIO_DIR = '../../shared/audiofolders';
+const DEFAULT_AUDIO_DIR = '../../shared/audio';
 const ROOT_DIRS = ['./', DEFAULT_AUDIO_DIR];
 
 

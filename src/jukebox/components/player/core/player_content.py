@@ -13,8 +13,8 @@ cfg = jukebox.cfghandler.get_handler('jukebox')
 class PlayerData:
 
     def __init__(self):
-        self.audiofile = cfg.setndefault('players', 'content', 'audiofile', value='../../shared/audiofolders/audiofiles.yaml')
-        self.audiofile_basedir = cfg.setndefault('players', 'content', 'audiofile_basedir', value='../../shared/audiofolders')
+        self.audiofile = cfg.setndefault('players', 'content', 'audiofile', value='../../shared/audio/audiofiles.yaml')
+        self.audiofile_basedir = cfg.setndefault('players', 'content', 'audiofile_basedir', value='../../shared/audio')
         self._database = {'file': [{}],
                           'podcasts': [{}],
                           'livestreams': [{}]}

@@ -21,6 +21,10 @@ tornado
 # for collecting audiofiles
 pyyaml
 
+# For spotify
+websocket-client
+urllib3
+
 # RPi's GPIO packages:
 RPi.GPIO
 gpiozero

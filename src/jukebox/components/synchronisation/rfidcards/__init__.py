@@ -1,7 +1,7 @@
 """
 Handles the synchronisation of RFID cards (audiofolder and card database entries).
 
-sync-all -> all card entries and audiofolders are synced from remote including deletions
+sync-all -> all card entries and audio are synced from remote including deletions
 sync-on-scan -> only the entry and audiofolder for the cardId will be synced from remote.
                 Deletions are only performed on files and subfolder inside the audiofolder.
                 A deletion of the audiofolder itself on remote side will not be propagated.
@@ -11,7 +11,7 @@ On synchronisation the remote file will not be synced with the original cards da
 If a full sync is performed, the state is written back to the original file.
 If a single card sync is performed, only the state of the specific cardId is updated in the original file.
 This is done to allow to play audio offline.
-Otherwise we would also update other cardIds where the audiofolders have not been synced yet.
+Otherwise we would also update other cardIds where the audio have not been synced yet.
 The local copy is kept to reduce unnecessary syncing.
 
 """
@@ -227,7 +227,7 @@ class SyncRfidcards:
         if not self._is_server_reachable():
             return False
 
-        _sync_remote_path_audio = os.path.join(self._sync_remote_path, "audiofolders")
+        _sync_remote_path_audio = os.path.join(self._sync_remote_path, "audio")
         _music_library_path = components.player.get_music_library_path()
         _cleaned_foldername = syncutils.clean_foldername(_music_library_path, folder)
         _src_path = syncutils.ensure_trailing_slash(os.path.join(_sync_remote_path_audio, _cleaned_foldername))

@@ -15,7 +15,7 @@ services:
       - PULSE_SERVER=tcp:host.docker.internal:4713
     restart: unless-stopped
     volumes:
-      - ../shared/audiofolders:/root/RPi-Jukebox-RFID/shared/audiofolders
+      - ../shared/audio:/root/RPi-Jukebox-RFID/shared/audio
       - ../shared/playlists:/root/.config/mpd/playlists
       - ./config/docker.pulse.mpd.conf:/root/.config/mpd/mpd.conf
 
