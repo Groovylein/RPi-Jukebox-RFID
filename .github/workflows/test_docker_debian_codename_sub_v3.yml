@@ -98,7 +98,7 @@ jobs:
         context: .
         load: false
         push: true
-        file: ./ci/ci-debian.Dockerfile
+        file: ./ci/ci-debian.spotify.Dockerfile
         target: test-code
         platforms: ${{ inputs.platform }}
         tags: ${{ steps.vars.outputs.image_tag_name_local_base }}
@@ -118,7 +118,7 @@ jobs:
         context: .
         load: false
         push: false
-        file: ./ci/ci-debian.Dockerfile
+        file: ./ci/ci-debian.spotify.Dockerfile
         target: test-update
         platforms: ${{ inputs.platform }}
         tags: ${{ steps.vars.outputs.image_tag_name }}

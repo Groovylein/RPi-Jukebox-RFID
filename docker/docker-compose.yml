@@ -61,3 +61,17 @@ services:
     volumes:
       - ../src/webapp:/home/node/webapp
       - /home/node/webapp/node_modules
+
+  spotify:
+    container_name: spotify
+    restart: unless-stopped
+    image: hvalev/spotifyd-pulseaudio
+    user: root:root
+    #network_mode: host #disabling to only show logged in user in spotify app (if you run multiple containers at once with different user logins)
+    devices:
+        - /dev/snd:/dev/snd
+    environment:
+        - PULSE_COOKIE=/tmp/pulseaudio.cookie
+    volumes:
+        - /run/user/1000/pulse/native:/tmp/pulseaudio.socket
+        - ./config/docker.spotify.conf:/etc/spotifyd.conf

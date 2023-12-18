@@ -27,3 +27,9 @@ services:
       - ../shared:/home/pi/RPi-Jukebox-RFID/shared
       - ./config/docker.pulse.mpd.conf:/home/pi/.config/mpd/mpd.conf
       - $XDG_RUNTIME_DIR/pulse/native:/tmp/pulse-sock
+
+  spotify:
+    environment:
+        - PULSE_SERVER=unix:/tmp/pulse-sock
+    volumes:
+        - $XDG_RUNTIME_DIR/pulse/native:/tmp/pulse-sock

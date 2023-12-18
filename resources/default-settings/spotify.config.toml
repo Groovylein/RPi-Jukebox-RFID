@@ -1,84 +1,113 @@
-deviceId = "" ### Device ID (40 chars, leave empty for random)  ###
-deviceName = "Phoniebox" ### Device name ###
-deviceType = "SPEAKER" ### Device type (COMPUTER, TABLET, SMARTPHONE, SPEAKER, TV, AVR, STB, AUDIO_DONGLE, GAME_CONSOLE, CAST_VIDEO, CAST_AUDIO, AUTOMOBILE, WEARABLE, UNKNOWN_SPOTIFY, CAR_THING, UNKNOWN) ###
-preferredLocale = "de" ### Preferred locale ###
-logLevel = "TRACE" ### Log level (OFF, FATAL, ERROR, WARN, INFO, DEBUG, TRACE, ALL) ###
+[global]
+# Your Spotify account name.
+username = "SPOT_USERNAME"
 
-[auth] ### Authentication ###
-strategy = "USER_PASS" # Strategy (USER_PASS, ZEROCONF, BLOB, FACEBOOK, STORED)
-username = "HERE_USERNAME" # Spotify username (BLOB, USER_PASS only)
-password = "HERE_PASSWORD" # Spotify password (USER_PASS only)
-blob = "" # Spotify authentication blob Base64-encoded (BLOB only)
-storeCredentials = false # Whether to store reusable credentials on disk (not a plain password)
-credentialsFile = "credentials.json" # Credentials file (JSON)
+# Your Spotify account password.
+password = "SPOT_PASSWORD"
 
-[zeroconf] ### Zeroconf ###
-listenPort = 12345 # Listen on this TCP port (`-1` for random)
-listenAll = true # Listen on all interfaces (overrides `zeroconf.interfaces`)
-interfaces = "" # Listen on these interfaces (comma separated list of names)
+# A command that gets executed and can be used to
+# retrieve your password.
+# The command should return the password on stdout.
+#
+# This is an alternative to the `password` field. Both
+# can't be used simultaneously.
+# ToDo: create such command
+password_cmd = "command_that_writes_password_to_stdout"
 
-[cache] ### Cache ###
-enabled = false # Cache enabled
-dir = "./cache/"
-doCleanUp = true
+# If set to true, `spotifyd` tries to look up your
+# password in the system's password storage.
+#
+# Note, that the `password` field will take precedence, if set.
+use_keyring = true
 
-[network] ### Network ###
-connectionTimeout = 10 # If ping isn't received within this amount of seconds, reconnect
+# If set to true, `spotifyd` tries to bind to dbus (default is the session bus)
+# and expose MPRIS controls. When running headless, without the session bus,
+# you should set this to false, to avoid errors. If you still want to use MPRIS,
+# have a look at the `dbus_type` option.
+use_mpris = true
 
-[preload] ### Preload ###
-enabled = true # Preload enabled
+# The bus to bind to with the MPRIS interface.
+# Possible values: "session", "system"
+# The system bus can be used if no graphical session is available
+# (e.g. on headless systems) but you still want to be able to use MPRIS.
+# NOTE: You might need to add appropriate policies to allow spotifyd to
+# own the name.
+dbus_type = "session"
 
-[time] ### Time correction ###
-synchronizationMethod = "NTP" # Time synchronization method (NTP, PING, MELODY, MANUAL)
-manualCorrection = 0 # Manual time correction in millis
+# The audio backend used to play music. To get
+# a list of possible backends, run `spotifyd --help`.
+backend = "alsa" # use portaudio for macOS [homebrew]
 
-[player] ### Player ###
-autoplayEnabled = false # Autoplay similar songs when your music ends
-preferredAudioQuality = "NORMAL" # Preferred audio quality (NORMAL, HIGH, VERY_HIGH)
-enableNormalisation = true # Whether to apply the Spotify loudness normalisation
-normalisationPregain = +3.0 # Normalisation pregain in decibels (loud at +6, normal at +3, quiet at -5)
-initialVolume = 65536 # Initial volume (0-65536)
-volumeSteps = 64 # Number of volume notches
-logAvailableMixers = true # Log available mixers
-mixerSearchKeywords = "" # Mixer/backend search keywords (semicolon separated)
-crossfadeDuration = 0 # Crossfade overlap time (in milliseconds)
-output = "MIXER" # Audio output device (MIXER, PIPE, STDOUT, CUSTOM)
-outputClass = "" # Audio output Java class name
-releaseLineDelay = 20 # Release mixer line after set delay (in seconds)
-pipe = "" # Output raw (signed) PCM to this file (`player.output` must be PIPE)
-retryOnChunkError = true # Whether the player should retry fetching a chuck if it fails
-metadataPipe = "" # Output metadata in Shairport Sync format (https://github.com/mikebrady/shairport-sync-metadata-reader)
-bypassSinkVolume = false # Whether librespot-java should ignore volume events, sink volume is set to the max
-localFilesPath = "" # Where librespot-java should search for local files
+# The alsa audio device to stream audio. To get a
+# list of valid devices, run `aplay -L`,
+device = "alsa_audio_device"  # omit for macOS
 
-[api] ### API ###
-port = 24879 # API port (`api` module only)
-host = "0.0.0.0" # API listen interface (`api` module only)
+# The PCM sample format to use. Possible values
+# are F32, S32, S24, S24_3, S16.
+# Change this value if you encounter errors like
+# "Alsa error PCM open ALSA function 'snd_pcm_hw_params_set_format' failed with error 'EINVAL: Invalid argument'"
+audio_format = "S16"
 
-[proxy] ### Proxy ###
-enabled = false # Whether the proxy is enabled
-type = "HTTP" # The proxy type (HTTP, SOCKS)
-ssl = false # Connect to proxy using SSL (HTTP only)
-address = "" # The proxy hostname
-port = 0 # The proxy port
-auth = false # Whether authentication is enabled on the server
-username = "" # Basic auth username
-password = "" # Basic auth password
+# The alsa control device. By default this is the same
+# name as the `device` field.
+control = "alsa_audio_device"  # omit for macOS
 
-[shell] ### Shell ###
-enabled = false # Shell events enabled
-executeWithBash = false # Execute the command with `bash -c`
-onContextChanged = ""
-onTrackChanged = ""
-onPlaybackEnded = ""
-onPlaybackPaused = ""
-onPlaybackResumed = ""
-onTrackSeeked = ""
-onMetadataAvailable = ""
-onVolumeChanged = ""
-onInactiveSession = ""
-onPanicState = ""
-onConnectionDropped = ""
-onConnectionEstablished = ""
-onStartedLoading = ""
-onFinishedLoading = ""
+# The alsa mixer used by `spotifyd`.
+mixer = "PCM"  # omit for macOS
+
+# The volume controller. Each one behaves different to
+# volume increases. For possible values, run
+# `spotifyd --help`.
+volume_controller = "alsa"  # use softvol for macOS
+
+# A command that gets executed in your shell after each song changes.
+on_song_change_hook = "command_to_run_on_playback_events"
+
+# The name that gets displayed under the connect tab on
+# official clients.
+device_name = "device_name_in_spotify_connect"
+
+# The audio bitrate. 96, 160 or 320 kbit/s
+bitrate = 160
+
+# The directory used to cache audio data. This setting can save
+# a lot of bandwidth when activated, as it will avoid re-downloading
+# audio files when replaying them.
+#
+# Note: The file path does not get expanded. Environment variables and
+# shell placeholders like $HOME or ~ don't work!
+cache_path = "cache_directory"
+
+# The maximal size of the cache directory in bytes
+# The example value corresponds to ~ 1GB
+max_cache_size = 1000000000
+
+# If set to true, audio data does NOT get cached.
+no_audio_cache = true
+
+# Volume on startup between 0 and 100
+# NOTE: This variable's type will change in v0.4, to a number (instead of string)
+initial_volume = "90"
+
+# If set to true, enables volume normalisation between songs.
+volume_normalisation = true
+
+# The normalisation pregain that is applied for each song.
+normalisation_pregain = -10
+
+# After the music playback has ended, start playing similar songs based on the previous tracks.
+autoplay = true
+
+# The port at which `spotifyd` is going to offer its service over the network (TCP).
+# If not set, a random port > 1024 is used. For the service to be discoverable on the
+# local network via mDNS, both the mDNS port (5353 UDP) and the random or fixed
+# zeroconf port need to be allowed through any active firewall.
+zeroconf_port = 1234
+
+# The proxy `spotifyd` will use to connect to spotify.
+proxy = "http://proxy.example.org:8080"
+
+# The displayed device type in Spotify clients.
+# Can be unknown, computer, tablet, smartphone, speaker, t_v,
+# a_v_r (Audio/Video Receiver), s_t_b (Set-Top Box), and audio_dongle.
+device_type = "speaker"
