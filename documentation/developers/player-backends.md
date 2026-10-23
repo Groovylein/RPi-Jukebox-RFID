@@ -1,8 +1,8 @@
 # Player Backends
 
 The player package exposes one stable RPC and RFID-card contract while routing
-content to one of several playback backends. The first registered backend is
-the default for legacy calls that do not include a provider.
+content to one of several playback backends. The track URI decides which
+backend plays it; the first registered backend (MPD) is the default.
 
 ## Register A Backend
 
@@ -10,12 +10,21 @@ Create the backend during player initialization and register it with a stable,
 lowercase identifier:
 
 ```python
-coordinator.register_backend('streaming', backend)
+coordinator.register_backend('streaming', backend, schemes=['spotify'])
 ```
 
-Passing `make_active=True` selects the backend immediately. Normal content
-playback selects a backend from the request's `provider`; switching stops the
-previous backend first.
+`schemes` lists the URI schemes routed to this backend. A scheme belongs to
+exactly one backend; registering a duplicate raises `ValueError`.
+
+Implement the `BackendPlayer` abstract class
+(`components/player/backends/__init__.py`). It requires only what every
+service needs: transport controls, `playerstatus`, volume, `exit`, and the
+URI calls `play_single`, `get_song_by_url` and `get_single_coverart`. Library
+and queue extras (`list_albums`, `play_folder`, `queue_load`, ...) are
+optional; calling one a backend lacks raises `NotImplementedError`.
+
+Passing `make_active=True` selects the backend immediately. Playing content
+selects the backend from the URI; switching stops the previous backend first.
 
 A backend may implement `set_active(active)`. The coordinator calls it whenever
 selection changes so polling backends can publish `playerstatus` only while
@@ -23,17 +32,32 @@ active. Status payloads must include the backend identifier as `provider`.
 
 ## Playback Contract
 
-Provider-aware calls keep the existing command names:
+Content calls take a single URI and route by its scheme:
 
 ```python
-play_single(song_url, provider=None)
-play_album(albumartist, album, content_uri=None, provider=None)
+play_single(uri)
+get_single_coverart(uri)
+get_song_by_url(uri)
+play_album(albumartist, album, content_uri=None)
+list_songs_by_artist_and_album(albumartist, album, content_uri=None)
 ```
 
-Cover lookup and catalog-detail calls accept the same provider metadata.
-Calls without `provider` route to the default backend, preserving existing
-RFID cards and local paths. Provider integrations must therefore store their
-identifier alongside the stable content URI when creating a card action.
+A URI looks like `spotify:track:123`. The coordinator matches the text before
+the first `:` (case-insensitive) against the registered schemes and passes the
+rest (`track:123`) to the backend. MPD is registered as `mpd`, so `mpd:` is
+stripped too (`mpd:Album/song.mp3` becomes `Album/song.mp3`).
+
+A URI with no scheme, with an unregistered scheme (`https://...`), or a path
+containing a colon (`Stories/Chapter 1: Arrival.mp3`) goes to MPD unchanged.
+Existing RFID cards and local paths keep working. An empty URI raises
+`ValueError`. The album calls route on `content_uri`; without it they use MPD.
+
+Cards saved before URI routing used `song_url` and `provider` keyword
+arguments. `play_single` still accepts `song_url`, and `play_single` and
+`play_album` still accept `provider` and ignore it.
+
+Library listing (`list_albums`, `list_library_items`, `list_library_sources`)
+still takes an optional `provider`, as it has no single URI to route on.
 
 Folder playback, folder browsing, local library updates, and cover-cache
 flushing route to the default backend. Transport controls such as pause, next,
