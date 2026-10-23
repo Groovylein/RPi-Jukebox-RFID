@@ -33,7 +33,7 @@ test('timer commands map and default the restart argument', () => {
 });
 
 test('player card contracts preserve provider-qualified content', () => {
-  expect(commands.play_single.argKeys).toEqual(['song_url', 'provider']);
+  expect(commands.play_single.argKeys).toEqual(['uri']);
   expect(commands.play_album.argKeys).toEqual([
     'albumartist',
     'album',
