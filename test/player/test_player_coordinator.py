@@ -434,3 +434,27 @@ def test_legacy_song_url_and_provider_kwargs_still_accepted():
     coordinator, mpd, _ = _routed()
     coordinator.play_single(song_url='Album/song.mp3', provider='mpd')
     mpd.play_single.assert_called_once_with('Album/song.mp3')
+
+
+def test_player_mpd_is_a_backend_player():
+    from components.player.backends import BackendPlayer
+    assert issubclass(PlayerMPD, BackendPlayer)
+    assert not PlayerMPD.__abstractmethods__
+
+
+def test_backend_player_cannot_be_instantiated():
+    from components.player.backends import BackendPlayer
+    with pytest.raises(TypeError):
+        BackendPlayer()
+
+
+def test_initialize_registers_mpd_scheme(monkeypatch):
+    from components.player import mpd_plugin
+    monkeypatch.setattr(mpd_plugin, 'PlayerMPD', lambda: backend_with())
+    monkeypatch.setattr(mpd_plugin.plugs, 'register', Mock())
+    monkeypatch.setattr(mpd_plugin.plugs, 'loaded_as', lambda name: name)
+    monkeypatch.setattr(mpd_plugin.cfg, 'setndefault', lambda *a, **k: False)
+
+    coordinator = mpd_plugin.initialize_mpd_player('components.player.plugin')
+
+    assert coordinator._split_uri('mpd:a.mp3') == ('mpd', 'a.mp3')

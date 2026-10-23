@@ -16,7 +16,7 @@ cfg = jukebox.cfghandler.get_handler('jukebox')
 def initialize_mpd_player(plugin_module_name: str) -> PlayerCoordinator:
     """Create the coordinator with MPD as its sole backend and register it."""
     player_ctrl = PlayerCoordinator(components.player.play_card_callbacks)
-    player_ctrl.register_backend('mpd', PlayerMPD())
+    player_ctrl.register_backend('mpd', PlayerMPD(), schemes=['mpd'])
     plugs.register(
         player_ctrl,
         name='ctrl',

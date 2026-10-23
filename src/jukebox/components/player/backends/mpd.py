@@ -97,6 +97,7 @@ import jukebox.publishing as publishing
 import jukebox.playlistgenerator as playlistgenerator
 
 from jukebox.NvManager import nv_manager
+from . import BackendPlayer
 from .coverart_cache_manager import CoverartCacheManager
 
 logger = logging.getLogger('jb.PlayerMPD')
@@ -137,7 +138,7 @@ class MpdLock:
         return self._lock.locked()
 
 
-class PlayerMPD:
+class PlayerMPD(BackendPlayer):
     """Interface to MPD Music Player Daemon"""
 
     def __init__(self):
