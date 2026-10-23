@@ -19,6 +19,16 @@ const commands = {
     plugin: 'ctrl',
     method: 'list_albums',
   },
+  librarySources: {
+    _package: 'player',
+    plugin: 'ctrl',
+    method: 'list_library_sources',
+  },
+  libraryItems: {
+    _package: 'player',
+    plugin: 'ctrl',
+    method: 'list_library_items',
+  },
   songList: {
     _package: 'player',
     plugin: 'ctrl',
@@ -28,7 +38,7 @@ const commands = {
     _package: 'player',
     plugin: 'ctrl',
     method: 'get_song_by_url',
-    argKeys: ['song_url']
+    argKeys: ['song_url', 'provider']
   },
   folderList: {
     _package: 'player',
@@ -49,8 +59,8 @@ const commands = {
   },
   playerstatus: {
     _package: 'player',
-    plugin: 'player_status',
-    method: 'status'
+    plugin: 'ctrl',
+    method: 'playerstatus'
   },
 
   // Player Actions
@@ -63,9 +73,8 @@ const commands = {
     _package: 'player',
     plugin: 'ctrl',
     method: 'play_single',
-    argKeys: ['uri']
+    argKeys: ['song_url', 'provider']
   },
-  // ToDo: verify if this is really needed?
   play_folder: {
     _package: 'player',
     plugin: 'ctrl',
@@ -76,7 +85,7 @@ const commands = {
     _package: 'player',
     plugin: 'ctrl',
     method: 'play_album',
-    argKeys: ['albumartist', 'album']
+    argKeys: ['albumartist', 'album', 'content_uri', 'provider']
   },
   pause: {
     _package: 'player',
@@ -181,7 +190,8 @@ const commands = {
     _package: 'timers',
     plugin: 'timer_fade_volume',
     method: 'start',
-    argKeys: ['wait_seconds'],
+    argKeys: ['wait_seconds', 'restart'],
+    argDefaults: { restart: true },
   },
   'timer_shutdown.cancel': {
     _package: 'timers',
@@ -197,7 +207,8 @@ const commands = {
     _package: 'timers',
     plugin: 'timer_shutdown',
     method: 'start',
-    argKeys: ['wait_seconds'],
+    argKeys: ['wait_seconds', 'restart'],
+    argDefaults: { restart: true },
   },
   'timer_stop_player.cancel': {
     _package: 'timers',
@@ -213,7 +224,8 @@ const commands = {
     _package: 'timers',
     plugin: 'timer_stop_player',
     method: 'start',
-    argKeys: ['wait_seconds'],
+    argKeys: ['wait_seconds', 'restart'],
+    argDefaults: { restart: true },
   },
 
 
@@ -231,7 +243,8 @@ const commands = {
     _package: 'timers',
     plugin: 'timer_idle_shutdown',
     method: 'start',
-    argKeys: ['wait_seconds'],
+    argKeys: ['wait_seconds', 'restart'],
+    argDefaults: { restart: true },
   },
 
 

@@ -12,8 +12,6 @@ a directory is parsed and files are added to the playlist in the following way
 
 An directory may contain a mixed set of files and multiple ``*.txt`` files, e.g.
 
-.. code-block:: bash
-
     01-livestream.txt
     02-livestream.txt
     music.mp3
@@ -53,6 +51,8 @@ import logging
 import re
 import requests
 
+from jukebox.library import resolve_library_path
+
 from typing import (List)
 
 logger = logging.getLogger('jb.plgen')
@@ -71,28 +71,30 @@ TYPE_DECODE = ['file', 'directory', 'stream', 'podcast']
 
 
 class PlaylistEntry:
-    def __init__(self, filetype: int, name: str, uri: str = None):
+    def __init__(self, filetype: int, name: str, path: str):
         self._type = filetype
         self._name = name
-        self._uri = uri
+        self._path = path
 
     @property
     def name(self):
         return self._name
 
     @property
-    def filetype(self):
-        return self._type
+    def path(self):
+        return self._path
 
     @property
-    def uri(self):
-        return self._uri
+    def filetype(self):
+        return self._type
 
 
 def decode_podcast_core(url, playlist):
     # Example url:
     # url = 'http://www.kakadu.de/podcast-kakadu.2730.de.podcast.xml'
     # url = 'https://www1.wdr.de/mediathek/audio/hoerspiel-speicher/wdr_hoerspielspeicher150.podcast'
+    # url = 'https://feeds.simplecast.com/BqbsxVfO'
+
     try:
         r = requests.get(url)
     except Exception as e:
@@ -100,7 +102,7 @@ def decode_podcast_core(url, playlist):
         return
     if r.status_code != 200:
         logger.error(f"Got error code {r.status_code} fetching from '{url}'")
-    er = enclosure_re.findall(r.content.decode(r.encoding))
+    er = enclosure_re.findall(r.content.decode(r.encoding) or 'utf-8')
     if len(er) == 0:
         logger.error(f"Zero file entries in parsed content from '{url}'")
     for exp in er:
@@ -178,7 +180,7 @@ class PlaylistCollector:
     #: Ignore files with the following endings.
     #: Attention: this will go into a regexp builder, i.e. ``.*`` will match anything!
     #: Always set via :func:`set_exclusion_endings`
-    _exclude_endings = ['zip', 'xcf', 'py', 'db', 'png', 'jpg', 'conf', 'yaml', 'json', '.*~', '.*#']
+    _exclude_endings = ['zip', 'xcf', 'py', 'db', 'png', 'jpg', 'pdf', 'conf', 'yaml', 'json', '.*~', '.*#']
     # Will generate a regex pattern string like this: r'.*\.((txt)|(zip))$
     _exclude_str = '.*\\.((' + ')|('.join(_exclude_endings) + '))$'
     _exclude_re = re.compile(_exclude_str, re.IGNORECASE)
@@ -191,7 +193,9 @@ class PlaylistCollector:
         but is omitted when generating the playlist entries. I.e. all files in the playlist are relative to this base dir
         """
         self.playlist = []
-        self._music_library_base_path = os.path.abspath(os.path.expanduser(music_library_base_path))
+        self._music_library_base_path = str(
+            resolve_library_path(music_library_base_path, '.', require_exists=True)
+        )
         # These two variables only store reference content to generate __str__
         self._folder = ''
         self._recursive = False
@@ -212,7 +216,7 @@ class PlaylistCollector:
         Check if filename is valid
         """
         return direntry.is_file() and not direntry.name.startswith('.') \
-            and PlaylistCollector._exclude_re.match(direntry.name) is None and direntry.name.find('.') >= 0
+               and PlaylistCollector._exclude_re.match(direntry.name) is None and direntry.name.find('.') >= 0
 
     @classmethod
     def set_exclusion_endings(cls, endings: List[str]):
@@ -229,7 +233,13 @@ class PlaylistCollector:
         dirs = []
         files = []
         playlist = []
-        self._folder = os.path.abspath(os.path.join(self._music_library_base_path, path))
+        self._folder = str(
+            resolve_library_path(
+                self._music_library_base_path,
+                path,
+                require_exists=True,
+            )
+        )
         for f in os.scandir(self._folder):
             if f.is_dir(follow_symlinks=True):
                 dirs.append(f)
@@ -268,8 +278,13 @@ class PlaylistCollector:
             where type is one of :attr:`TYPE_DECODE`
         """
         self.playlist = []
-        self._folder = os.path.abspath(os.path.join(self._music_library_base_path, path))
-        logger.debug(self._folder)
+        self._folder = str(
+            resolve_library_path(
+                self._music_library_base_path,
+                path,
+                require_exists=True,
+            )
+        )
         try:
             content = self._get_directory_content(self._folder)
         except NotADirectoryError as e:
@@ -277,12 +292,16 @@ class PlaylistCollector:
         except FileNotFoundError as e:
             logger.error(f" {e.__class__.__name__}: {e}")
         else:
-            logger.debug(f"Playlist Content: {content}")
             for m in content:
-                self.playlist.append({'type': TYPE_DECODE[m.filetype], 'name': m.name, 'uri': m.uri})
+                self.playlist.append({
+                    'type': TYPE_DECODE[m.filetype],
+                    'name': m.name,
+                    'path': m.path,
+                    'relpath': os.path.relpath(m.path, self._music_library_base_path)
+                })
 
     def _parse_nonrecusive(self, path='.'):
-        return [x.uri for x in self._get_directory_content(path) if x.filetype != TYPE_DIR]
+        return [x.path for x in self._get_directory_content(path) if x.filetype != TYPE_DIR]
 
     def _parse_recursive(self, path='.'):
         # This can certainly be optimized, as os.walk is called on all
@@ -298,14 +317,20 @@ class PlaylistCollector:
         return recursive_playlist
 
     def parse(self, path='.', recursive=False):
-        """Parse the folder ``path`` and create a playlist from it's content
+        """Parse the folder ``path`` and create a playlist from its content
 
         :param path: Path to folder **relative** to ``music_library_base_path``
         :param recursive: Parse folder recursivley, or stay in top-level folder
         """
         self.playlist = []
         self._recursive = recursive
-        self._folder = os.path.abspath(os.path.join(self._music_library_base_path, path))
+        self._folder = str(
+            resolve_library_path(
+                self._music_library_base_path,
+                path,
+                require_exists=True,
+            )
+        )
         func = self._parse_recursive if recursive else self._parse_nonrecusive
         try:
             self.playlist = func(self._folder)

@@ -29,16 +29,16 @@ pulse:
   toggle_on_connect: true
   # Limit maximum volume range to XX % - can be changed through the UI (for temporary use)
   soft_max_volume: 70
-  # Run the audio configuration tool to configure the pulseaudio sinks
+  # Run the audio configuration tool to configure the audio sinks
   #
   # After startup, the audio output defaults to primary
   # Any Bluetooth device should be the secondary (as it may not always be available directly after boot)
   #
-  # For manual setting of pulseaudio sinks use:
-  # $ pactl list sinks short
+  # For manual inspection of available sinks use:
+  # $ wpctl status
   #
-  # Test sinks with
-  # $ paplay -D sink_name /usr/share/sounds/alsa/Front_Center.wav
+  # Test a sink with its ID from `wpctl status`:
+  # $ pw-play --target=<id> /usr/share/sounds/alsa/Front_Center.wav
   #
   # Parameters:
   # - alias       : user defined alias for better readability
@@ -78,12 +78,12 @@ alsawave:
   device: default
 rpc:
   tcp_port: 5555
-  websocket_port: 5556
+api:
+  bind_address: 127.0.0.1
+  port: 5556
 publishing:
-  # Ports for the publisher. Setting a port number to 0 disables the port
-  # The WebUI requires the websocket connection
+  # Setting the port number to 0 disables external TCP publishing
   tcp_port: 5558
-  websocket_port: 5557
 rfid:
   reader_config: ../../shared/settings/rfid.yaml
   card_database: ../../shared/settings/cards.yaml
@@ -94,6 +94,7 @@ timers:
   idle_shutdown:
     # If you want the box to shutdown on inactivity automatically, configure timeout_sec with a number of seconds (at least 60).
     # Inactivity is defined as: no music playing, no active SSH sessions, no changes in configs or audio content.
+    # The setting persists across reboots until it is cancelled or set to 0.
     timeout_sec: 0
   # These timers are always disabled after start
   # The following values only give the default values.
@@ -102,9 +103,8 @@ timers:
     default_timeout_sec: 3600
   stop_player:
     default_timeout_sec: 3600
-  volume_fade_out:
-    default_time_per_iteration_sec: 900
-    number_of_steps: 10
+  volume_fadeout:
+    default_timeout_sec: 600
 host:
   # Do not actually execute system shutdown and reboot commands
   debug_mode: false
