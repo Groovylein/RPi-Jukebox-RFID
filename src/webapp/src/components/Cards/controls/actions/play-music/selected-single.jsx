@@ -8,7 +8,7 @@ import NoMusicSelected from './no-music-selected';
 
 import request from '../../../../../utils/request';
 
-const SelectecSingle = ({ values: [song_url, provider] }) => {
+const SelectecSingle = ({ values: [uri] }) => {
   const { t } = useTranslation();
   const [song, setSong] = useState({});
   const [error, setError] = useState(null);
@@ -17,7 +17,7 @@ const SelectecSingle = ({ values: [song_url, provider] }) => {
   useEffect(() => {
     const getSongList = async () => {
       setIsLoading(true);
-      const { result, error } = await request('getSongByUrl', { song_url, provider });
+      const { result, error } = await request('getSongByUrl', { uri });
       setIsLoading(false);
 
       if(result) {
@@ -27,7 +27,7 @@ const SelectecSingle = ({ values: [song_url, provider] }) => {
     }
 
     getSongList();
-  }, [provider, song_url]);
+  }, [uri]);
 
   if (error) {
     return (
@@ -52,7 +52,7 @@ const SelectecSingle = ({ values: [song_url, provider] }) => {
     );
   }
 
-  if (song_url) {
+  if (uri) {
     return (
       <List sx={{ width: '100%' }}>
         <SongListItem song={song} />

@@ -66,3 +66,8 @@ test('player card contracts preserve provider-qualified content', () => {
     undefined,
   ]);
 });
+
+test('single track commands take only the uri', () => {
+  expect(commands.play_single.argKeys).toEqual(['uri']);
+  expect(commands.getSongByUrl.argKeys).toEqual(['uri']);
+});

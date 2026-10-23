@@ -14,7 +14,7 @@ import request from '../../utils/request';
 
 const Player = () => {
   const { state: { playerstatus } } = useContext(PlayerContext);
-  const { cover_url, file, provider } = playerstatus || {};
+  const { cover_url, file } = playerstatus || {};
 
   const [coverImage, setCoverImage] = useState(undefined);
   const [backgroundImage, setBackgroundImage] = useState('none');
@@ -28,8 +28,7 @@ const Player = () => {
   useEffect(() => {
     const getCoverArt = async () => {
       const { result } = await request('getSingleCoverArt', {
-        song_url: file,
-        provider,
+        uri: file,
       });
       if (result) {
         const cover = result.startsWith('http') ? result : `/cover-cache/${result}`;
@@ -53,7 +52,7 @@ const Player = () => {
     else if (file && show_covers) {
       getCoverArt();
     }
-  }, [cover_url, file, provider, show_covers]);
+  }, [cover_url, file, show_covers]);
 
   return (
     <Grid

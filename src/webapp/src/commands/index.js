@@ -38,7 +38,7 @@ const commands = {
     _package: 'player',
     plugin: 'ctrl',
     method: 'get_song_by_url',
-    argKeys: ['song_url', 'provider']
+    argKeys: ['uri']
   },
   folderList: {
     _package: 'player',
@@ -73,7 +73,7 @@ const commands = {
     _package: 'player',
     plugin: 'ctrl',
     method: 'play_single',
-    argKeys: ['song_url', 'provider']
+    argKeys: ['uri']
   },
   play_folder: {
     _package: 'player',

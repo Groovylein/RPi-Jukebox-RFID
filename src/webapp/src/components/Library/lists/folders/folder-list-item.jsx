@@ -30,7 +30,7 @@ const FolderListItem = ({
   const playItem = () => {
     switch(type) {
       case 'directory': return request('play_folder', { folder: relpath, recursive: true });
-      case 'file': return request('play_single', { song_url: relpath });
+      case 'file': return request('play_single', { uri: relpath });
       // TODO: Add missing Podcast
       // TODO: Add missing Stream
       default: return;
@@ -40,7 +40,7 @@ const FolderListItem = ({
   const registerItemToCard = () => {
     switch(type) {
       case 'directory': return registerMusicToCard('play_folder', { folder: relpath, recursive: true });
-      case 'file': return registerMusicToCard('play_single', { song_url: relpath });
+      case 'file': return registerMusicToCard('play_single', { uri: relpath });
       // TODO: Add missing Podcast
       // TODO: Add missing Stream
       default: return;
