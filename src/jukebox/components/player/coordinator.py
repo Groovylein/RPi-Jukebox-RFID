@@ -1,6 +1,7 @@
 import logging
+import re
 import threading
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Sequence, Tuple
 
 import jukebox.plugs as plugs
 
@@ -8,6 +9,8 @@ from .playcontentcallback import PlayCardState, PlayContentCallbacks
 
 
 logger = logging.getLogger('jb.player')
+
+_SCHEME_RE = re.compile(r'^([A-Za-z][A-Za-z0-9+.-]*):(.*)$', re.S)
 
 
 class PlayerCoordinator:
@@ -17,17 +20,34 @@ class PlayerCoordinator:
         self._backends: Dict[str, Any] = {}
         self._default_backend_name: Optional[str] = None
         self._active_backend_name: Optional[str] = None
+        self._schemes: Dict[str, str] = {}
         self._lock = threading.RLock()
         self._play_card_callbacks = play_card_callbacks
 
-    def register_backend(self, name: str, backend: Any, make_active: bool = False) -> None:
-        """Register a backend, selecting the first registered backend by default."""
+    def register_backend(
+            self,
+            name: str,
+            backend: Any,
+            make_active: bool = False,
+            schemes: Sequence[str] = ()) -> None:
+        """Register a backend, selecting the first registered backend by default.
+
+        :param schemes: URI schemes (e.g. ``spotify``) routed to this backend
+        """
         if not name:
             raise ValueError("Player backend name must not be empty")
         with self._lock:
             if name in self._backends:
                 raise ValueError(f"Player backend '{name}' is already registered")
+            schemes = [scheme.lower() for scheme in schemes]
+            for scheme in schemes:
+                if scheme in self._schemes:
+                    raise ValueError(
+                        f"URI scheme '{scheme}' is already registered "
+                        f"for backend '{self._schemes[scheme]}'"
+                    )
             self._backends[name] = backend
+            self._schemes.update({scheme: name for scheme in schemes})
             if self._default_backend_name is None:
                 self._default_backend_name = name
             if self._active_backend_name is None or make_active:
@@ -71,6 +91,18 @@ class PlayerCoordinator:
         logger.info(f"Selected player backend '{name}'")
         return backend
 
+    def _split_uri(self, uri: Optional[str]) -> Tuple[str, str]:
+        """Return (backend name, uri without scheme).
+
+        No scheme or an unregistered scheme means the default backend and the unchanged URI.
+        """
+        if not uri:
+            raise ValueError("Player URI must not be empty")
+        match = _SCHEME_RE.match(uri)
+        if match and match.group(1).lower() in self._schemes:
+            return self._schemes[match.group(1).lower()], match.group(2)
+        return self._get_default_backend_name(), uri
+
     def _content_backend_name(self, provider=None) -> str:
         return provider or self._get_default_backend_name()
 
@@ -106,6 +138,12 @@ class PlayerCoordinator:
     def _call_active(self, method: str, *args, **kwargs):
         with self._lock:
             return self._call_backend(self._get_active_backend(), method, *args, **kwargs)
+
+    def _album_target(self, albumartist, album, content_uri):
+        if not content_uri:
+            return self._get_default_backend_name(), (albumartist, album)
+        name, rest = self._split_uri(content_uri)
+        return name, (albumartist, album, rest)
 
     @plugs.tag
     def list_backends(self):
@@ -206,10 +244,11 @@ class PlayerCoordinator:
         return self._call_active('move')
 
     @plugs.tag
-    def play_single(self, song_url, provider=None):
+    def play_single(self, uri=None, song_url=None, provider=None):
+        # song_url/provider: accepted for cards saved before URI routing; provider is ignored
         with self._lock:
-            backend = self._content_backend(provider)
-            return self._call_backend(backend, 'play_single', song_url)
+            name, rest = self._split_uri(uri or song_url)
+            return self._call_backend(self._select_backend(name), 'play_single', rest)
 
     @plugs.tag
     def resume(self):
@@ -230,12 +269,9 @@ class PlayerCoordinator:
             return self._call_backend(backend, 'play_folder', folder, recursive)
 
     @plugs.tag
-    def get_single_coverart(self, song_url, provider=None):
-        return self._call_named(
-            self._content_backend_name(provider),
-            'get_single_coverart',
-            song_url,
-        )
+    def get_single_coverart(self, uri):
+        name, rest = self._split_uri(uri)
+        return self._call_named(name, 'get_single_coverart', rest)
 
     @plugs.tag
     def get_album_coverart(
@@ -269,10 +305,10 @@ class PlayerCoordinator:
             album: str,
             content_uri=None,
             provider=None):
+        # provider: accepted for cards saved before URI routing; ignored
         with self._lock:
-            backend = self._content_backend(provider)
-            args = (albumartist, album, content_uri) if content_uri else (albumartist, album)
-            return self._call_backend(backend, 'play_album', *args)
+            name, args = self._album_target(albumartist, album, content_uri)
+            return self._call_backend(self._select_backend(name), 'play_album', *args)
 
     @plugs.tag
     def queue_load(self, folder):
@@ -350,23 +386,14 @@ class PlayerCoordinator:
             self,
             albumartist,
             album,
-            content_uri=None,
-            provider=None):
-        backend_name = self._content_backend_name(provider)
-        args = (albumartist, album, content_uri) if content_uri else (albumartist, album)
-        return self._call_named(
-            backend_name,
-            'list_songs_by_artist_and_album',
-            *args,
-        )
+            content_uri=None):
+        name, args = self._album_target(albumartist, album, content_uri)
+        return self._call_named(name, 'list_songs_by_artist_and_album', *args)
 
     @plugs.tag
-    def get_song_by_url(self, song_url, provider=None):
-        return self._call_named(
-            self._content_backend_name(provider),
-            'get_song_by_url',
-            song_url,
-        )
+    def get_song_by_url(self, uri):
+        name, rest = self._split_uri(uri)
+        return self._call_named(name, 'get_song_by_url', rest)
 
     def get_volume(self):
         return self._call_active('get_volume')

@@ -109,11 +109,11 @@ def test_switch_stops_old_backend_before_new_content_starts():
     )
     coordinator = PlayerCoordinator()
     coordinator.register_backend('mpd', mpd_backend)
-    coordinator.register_backend('streaming', streaming_backend)
+    coordinator.register_backend('streaming', streaming_backend, schemes=['service'])
 
-    coordinator.play_single('service:track:123', provider='streaming')
+    coordinator.play_single('service:track:123')
 
-    assert events == ['mpd.stop', 'play:service:track:123']
+    assert events == ['mpd.stop', 'play:track:123']
     assert coordinator.get_active_backend() == 'streaming'
 
 
@@ -142,16 +142,11 @@ def test_provider_qualified_content_selects_matching_backend():
     )
     coordinator = PlayerCoordinator()
     coordinator.register_backend('local', local_backend)
-    coordinator.register_backend('streaming', streaming_backend)
+    coordinator.register_backend('streaming', streaming_backend, schemes=['service'])
 
-    coordinator.play_album(
-        'Artist',
-        'Album',
-        content_uri='service:album:123',
-        provider='streaming',
-    )
+    coordinator.play_album('Artist', 'Album', content_uri='service:album:123')
 
-    assert events == ['local.stop', 'play:service:album:123']
+    assert events == ['local.stop', 'play:album:123']
     assert coordinator.get_active_backend() == 'streaming'
 
 
@@ -377,3 +372,65 @@ def test_exit_closes_all_backends_in_reverse_registration_order():
     coordinator.register_backend('second', second)
 
     assert coordinator.exit() == [sentinel.second, sentinel.first]
+
+
+def _routed():
+    mpd = backend_with(
+        play_single=Mock(), get_single_coverart=Mock(), get_song_by_url=Mock())
+    spot = backend_with(
+        play_single=Mock(), get_single_coverart=Mock(), get_song_by_url=Mock(),
+        list_songs_by_artist_and_album=Mock())
+    coordinator = PlayerCoordinator()
+    coordinator.register_backend('mpd', mpd, schemes=['mpd'])
+    coordinator.register_backend('spotify', spot, schemes=['spotify'])
+    return coordinator, mpd, spot
+
+
+@pytest.mark.parametrize(('uri', 'target', 'expected'), [
+    ('spotify:track:1', 'spot', 'track:1'),
+    ('SPOTIFY:track:1', 'spot', 'track:1'),
+    ('mpd:Album/song.mp3', 'mpd', 'Album/song.mp3'),
+    ('Album/song.mp3', 'mpd', 'Album/song.mp3'),
+    ('Stories/Chapter 1: Arrival.mp3', 'mpd', 'Stories/Chapter 1: Arrival.mp3'),
+    ('https://x/y', 'mpd', 'https://x/y'),
+])
+def test_uri_scheme_routes_to_backend(uri, target, expected):
+    coordinator, mpd, spot = _routed()
+    coordinator.play_single(uri)
+    {'mpd': mpd, 'spot': spot}[target].play_single.assert_called_once_with(expected)
+
+
+def test_coverart_and_song_lookup_route_by_uri():
+    coordinator, _, spot = _routed()
+    coordinator.get_single_coverart('spotify:track:1')
+    coordinator.get_song_by_url('spotify:track:1')
+    spot.get_single_coverart.assert_called_once_with('track:1')
+    spot.get_song_by_url.assert_called_once_with('track:1')
+
+
+def test_content_uri_routes_song_listing():
+    coordinator, _, spot = _routed()
+    coordinator.list_songs_by_artist_and_album('A', 'B', content_uri='spotify:album:1')
+    spot.list_songs_by_artist_and_album.assert_called_once_with('A', 'B', 'album:1')
+
+
+def test_duplicate_scheme_rejected():
+    coordinator = PlayerCoordinator()
+    coordinator.register_backend('mpd', backend_with(), schemes=['mpd'])
+    with pytest.raises(ValueError, match="already"):
+        coordinator.register_backend('other', backend_with(), schemes=['mpd'])
+    assert coordinator.list_backends() == ['mpd']
+
+
+@pytest.mark.parametrize('bad', ['', None])
+def test_empty_uri_rejected(bad):
+    coordinator, mpd, _ = _routed()
+    with pytest.raises(ValueError):
+        coordinator.play_single(bad)
+    mpd.play_single.assert_not_called()
+
+
+def test_legacy_song_url_and_provider_kwargs_still_accepted():
+    coordinator, mpd, _ = _routed()
+    coordinator.play_single(song_url='Album/song.mp3', provider='mpd')
+    mpd.play_single.assert_called_once_with('Album/song.mp3')
