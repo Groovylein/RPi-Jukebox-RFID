@@ -25,7 +25,7 @@
 - Windows-style or `https://x` URI with unregistered scheme: falls back to MPD, unmodified.
 - Empty or `None` URI: raises `ValueError`, no backend call.
 - Registered scheme whose backend is missing a method: existing `NotImplementedError` surfaces.
-- Webapp still passes old `song_url`/`provider` keys: stale saved cards. See Task 3.
+- Cards saved with keyword `song_url`/`provider` args break after the rename to `uri`; positional-arg cards keep working. Check `shared/settings/cards.yaml` format in Task 1 and, if kwargs are stored, accept `song_url` as a deprecated alias.
 
 ---
 
